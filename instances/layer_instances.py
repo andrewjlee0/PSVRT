@@ -124,9 +124,12 @@ class Conv2dLayer(layers.BaseLayer):
 
         # [height, width, out_channels]
         # side length (height and width) is side length = floor((input_size - rf_size)/stride)+1
-        self.output_size = map(add, map(lambda x: int(np.floor(x)),
-                                        map(truediv, map(sub, self.input_size[:2], self.rf_size), stride)),
-                               [1] * len(rf_size))
+        if not self.keep_size:
+            self.output_size = map(add, map(lambda x: int(np.floor(x)),
+                                            map(truediv, map(sub, self.input_size[:2], self.rf_size), stride)),
+                                   [1] * len(rf_size))
+        else:
+            self.output_size = list(self.input_size[:2])
         self.output_size = map(lambda x: int(x), self.output_size) + [output_channels]
 
         # rf_size + [inchannels, outchannels]

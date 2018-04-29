@@ -75,6 +75,106 @@ class FC_k_layer(processors.BaseFeedforwardProcessor):
         return tf.reshape(output, [self.batch_size] + self.output_size)
 
 
+class PSVRT_cnn(processors.BaseFeedforwardProcessor):
+    """
+    A multilayer simese convolutional net. Input channels are processed separately using shared conv weights.
+    """
+
+    def initialize_vars(self, num_categories,
+                        num_CP_layers, num_CP_features, num_FC_layers, num_FC_features,
+                        initial_conv_rf_size, interm_conv_rf_size, pool_rf_size=[3, 3], stride_size=[2, 2],
+                        activation_type='relu', trainable=True, hamstring_factor=1.0,
+                        global_pool=False):
+        """
+        Inputs:
+
+        num_CP_layers :     (int) number of conv-pool layer pairs (e.g. if 2, it means there are of total 4 layers)
+        num_features : 		(int) number of convolution filters per layer
+        conv_rf_size : 		(list) The receptive field size of the convolution kernel,  [height, width]
+        pool_rf_size :		(list) The receptive field size of the pool kernel,  [height, width]
+        stride_size : 		(list) The pooling stride side, [height, width]
+        activation_type : 	(str) the activation type of the conv layers
+        attn :				(bool) whether or not to use the initial spatial attention layer
+        global_pool :  		(bool) whether or not to use the final global pooling layer
+        trainable :  		(bool) whether or not to include its parameters to the list of trainable variables
+        """
+        self.global_pool = global_pool
+        layer_list = []
+
+        intermediate_output_size = self.get_output_size()
+        layer_ind = 0
+
+        for ii in range(num_CP_layers):
+            layer_ind += 1
+            conv_rf_size = initial_conv_rf_size if (ii == 0) else interm_conv_rf_size
+            num_features = int(num_CP_features*hamstring_factor) if (ii==0) else int(num_features*interm_conv_rf_size[0])
+
+            # construct conv layer
+            layer_list.append(
+                layer_instances.Conv2dLayer(name=self.name + '/conv_' + str(ii + 1), input_size=intermediate_output_size,
+                                            batch_size=self.batch_size, trainable=trainable))
+            layer_list[-1].initialize_vars(rf_size=conv_rf_size, output_channels=num_features, stride=[1, 1],
+                                           activation_type=activation_type)
+            intermediate_output_size = layer_list[-1].get_output_size()
+            self.add_layer(layer_list[-1])
+
+            # construct pool layer
+            layer_list.append(
+                layer_instances.Maxpool2dLayer(name=self.name + '/pool_' + str(ii + 1), input_size=intermediate_output_size,
+                                      batch_size=self.batch_size))
+            layer_list[-1].initialize_vars(rf_size=pool_rf_size, stride=stride_size)
+            intermediate_output_size = layer_list[-1].get_output_size()
+            self.add_layer(layer_list[-1])
+
+            # construct global pool layer
+            if ii == num_CP_layers-1:
+                if self.global_pool:
+                    pool_size = intermediate_output_size[:2]
+                else:
+                    pool_size = [2,2]
+                layer_list.append(
+                    layer_instances.Maxpool2dLayer(name=self.name + '/global_pool',
+                                                   input_size=intermediate_output_size,
+                                                   batch_size=self.batch_size))
+                layer_list[-1].initialize_vars(rf_size=pool_size, stride=[1,1])
+                intermediate_output_size = layer_list[-1].get_output_size()
+
+                self.add_layer(layer_list[-1])
+
+        for jj in range(num_FC_layers+1):
+            layer_ind += 1
+            num_features = int(num_FC_features*hamstring_factor) if (jj<num_FC_layers-1) else num_categories
+            activation = activation_type if (jj<num_FC_layers-1) else 'raw'
+
+            layer_list.append(layer_instances.FCLayer(name=self.name + '/FC_' + str(jj + 1), input_size=intermediate_output_size,
+                                              batch_size=self.batch_size))
+            layer_list[-1].initialize_vars(output_channels=num_features, activation_type=activation)
+            intermediate_output_size = layer_list[-1].get_output_size()
+
+            self.add_layer(layer_list[-1])
+
+            if jj == 0: # add dropout layer
+                layer_list.append(layer_instances.DropoutLayer(name=self.name + '/dropout_' + str(jj + 1),
+                                                                input_size=intermediate_output_size,
+                                                                batch_size=self.batch_size))
+                layer_list[-1].initialize_vars(dropout_multiplier=1.)
+                intermediate_output_size = layer_list[-1].get_output_size()
+
+                self.add_layer(layer_list[-1])
+
+        self.output_size = layer_list[-1].get_output_size()
+
+
+    def run(self, X, dropout_keep_prob=1.):
+        intermediate = X
+        for current_layer in self.layer_list:
+            if isinstance(current_layer, layer_instances.DropoutLayer):
+                intermediate = current_layer.run(intermediate, dropout_keep_prob=dropout_keep_prob)
+            else:
+                intermediate = current_layer.run(intermediate)
+
+        return intermediate
+
 class PSVRT_siamesenet(processors.BaseFeedforwardProcessor):
     """
     A multilayer simese convolutional net. Input channels are processed separately using shared conv weights.
@@ -154,7 +254,7 @@ class PSVRT_siamesenet(processors.BaseFeedforwardProcessor):
         if (self.organization == 'obj') | (self.organization=='full'):
             intermediate_output_size[2] = intermediate_output_size[2]*self.num_items
             self.output_size[2] = self.output_size[2]*self.num_items
-        for jj in range(num_FC_layers):
+        for jj in range(num_FC_layers+1):
             layer_ind += 1
             num_features = int(num_FC_features*hamstring_factor) if (jj<num_FC_layers-1) else num_categories
             activation = activation_type if (jj<num_FC_layers-1) else 'raw'

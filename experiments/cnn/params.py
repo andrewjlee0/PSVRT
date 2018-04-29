@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join('..','..')))
 def get_params():
     params = {}
     params['raw_input_size'] = [180, 180, 1]
-    params['batch_size'] = 10
+    params['batch_size'] = 50
     params['num_categories'] = 2
     params['num_min_train_imgs'] = 5000000 # 5M shorter run
     params['num_max_train_imgs'] = 5000000
@@ -18,9 +18,22 @@ def get_params():
 
     from instances import processor_instances
 
-    params['model_obj'] = processor_instances.PSVRT_vgg19
+    params['model_obj'] = processor_instances.PSVRT_cnn
     params['model_name'] = 'model'
-    params['model_init_args'] = {}
+    params['model_init_args'] = {'num_categories': 2,
+                                 'num_CP_layers': 4,
+                                 'num_CP_features': 16, # 4
+                                 'num_FC_layers': 4,
+                                 'num_FC_features': 1024,
+                                 'initial_conv_rf_size': [4, 4],
+                                 'interm_conv_rf_size': [2, 2],
+                                 'pool_rf_size': [3, 3],
+                                 'stride_size': [2, 2],
+                                 'activation_type': 'relu',
+                                 'global_pool': False,
+                                 'trainable': True,
+                                 'hamstring_factor': 1.}
+
     from instances import psvrt
     params['train_data_obj'] = psvrt.psvrt
     params['train_data_init_args'] = {'problem_type':'SD',

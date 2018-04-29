@@ -14,7 +14,7 @@ class n_sd_k(feeders.Feeder):
 
     def initialize_vars(self,
                         item_size, box_extent,
-                        n=2, k=2, num_item_pixel_values=2,
+                        n=2, k=2, num_item_pixel_values=1,
                         organization = 'raw',
                         display=False):
 
@@ -190,7 +190,7 @@ def sample_bitpatterns_naive(item_size, num_items, num_item_pixel_values, list_e
 if __name__ == '__main__':
     myobject = n_sd_k([20,20,1], batch_size=1)
     myobject.initialize_vars([3,3], [20,20],
-                            n=2, k=2, num_item_pixel_values=1,
+                            n=1, k=2, num_item_pixel_values=1,
                             organization = 'full',
                             display=True)
     myobject.single_batch()

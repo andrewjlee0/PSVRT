@@ -66,6 +66,7 @@ if __name__ == '__main__':
                                                                  str(n),
                                                                  str(item_size),
                                                                  'summary' + str(rep) + '.txt')
+                    params['tb_logs_dir'] = None  # '/home/jk/PSVRT_test_result_tb'
 
                     graph = tf.Graph()
                     with graph.as_default():

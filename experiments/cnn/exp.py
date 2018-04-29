@@ -9,16 +9,17 @@ from tensorflow.python.client import device_lib
 
 sys.path.append(os.path.abspath(os.path.join('..','..')))
 from helpers import train_helpers
-from experiments.vgg19 import params
+from experiments.cnn import params
 
 warnings.filterwarnings('ignore')
 tf.logging.set_verbosity(tf.logging.ERROR)
+
 
 def get_available_gpus():
     local_device_protos = device_lib.list_local_devices()
     return [x.name for x in local_device_protos if x.device_type == 'GPU']
 
-# 20 secs per 100 iterations (1K imgs) with batch size 10 using gtx 980
+
 if __name__ == '__main__':
 
     t = time.time()

@@ -96,10 +96,14 @@ def fftrain(**kwargs):
     utility.llprint("Building Computational Graph... ")
 
     ##### SETUP INPUT & OUTPUT PLACEHOLDERS
-    if (train_data_init_args['organization'] == 'obj') | (train_data_init_args['organization'] == 'full'):
-        input_placeholder = tf.placeholder(tf.float32, [batch_size] +
-                                                        raw_input_size[0:2] +
-                                                        [raw_input_size[2]*train_data_init_args['num_items']], name='input_placeholder')
+    if 'organization' in train_data_init_args.keys():
+        if (train_data_init_args['organization'] == 'obj') | (train_data_init_args['organization'] == 'full'):
+            input_placeholder = tf.placeholder(tf.float32, [batch_size] +
+                                                            raw_input_size[0:2] +
+                                                            [raw_input_size[2]*train_data_init_args['num_items']], name='input_placeholder')
+        else:
+            input_placeholder = tf.placeholder(tf.float32, [batch_size] + raw_input_size,
+                                               name='input_placeholder')
     else:
         input_placeholder = tf.placeholder(tf.float32, [batch_size] + raw_input_size,
                                            name='input_placeholder')
