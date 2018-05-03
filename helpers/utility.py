@@ -6,7 +6,6 @@ import subprocess
 import webbrowser
 import shutil
 from tensorflow.python.client import device_lib
-import ipdb
 
 def get_available_gpus():
     local_device_protos = device_lib.list_local_devices()
@@ -202,9 +201,10 @@ def tb_setup_BasicFFClassifier(tb_logs_dir, input_data, model_output, target_out
     summaries.append(prepare_summary(variance, "Variance", "Scalar"))
 
     # Gradient summary
-    for i, (grad, var) in enumerate(gradients):
-        if grad is not None:
-            summaries.append(prepare_summary(grad, var.name + '/grad', "Histogram"))
+    if gradients is not None:
+        for i, (grad, var) in enumerate(gradients):
+            if grad is not None:
+                summaries.append(prepare_summary(grad, var.name + '/grad', "Histogram"))
 
     # IO summary
     summaries.append(prepare_summary(input_data, "IO/Input", "Image"))

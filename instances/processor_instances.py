@@ -121,7 +121,7 @@ class PSVRT_cnn(processors.BaseFeedforwardProcessor):
             # construct pool layer
             layer_list.append(
                 layer_instances.Maxpool2dLayer(name=self.name + '/pool_' + str(ii + 1), input_size=intermediate_output_size,
-                                      batch_size=self.batch_size))
+                                               batch_size=self.batch_size))
             layer_list[-1].initialize_vars(rf_size=pool_rf_size, stride=stride_size)
             intermediate_output_size = layer_list[-1].get_output_size()
             self.add_layer(layer_list[-1])
@@ -345,7 +345,6 @@ class PSVRT_vgg19(processors.BaseFeedforwardProcessor):
     def initialize_vars(self):
 
         layer_list = []
-        self.output_size[2] = 1 #Channels are processed separately via regular_n_siamese convnet
         intermediate_output_size = self.get_output_size()
 
         # conv1_1
@@ -359,14 +358,6 @@ class PSVRT_vgg19(processors.BaseFeedforwardProcessor):
         # conv1_2
         layer_list.append(
             layer_instances.Conv2dLayer(name=self.name + '/conv1_2', input_size=intermediate_output_size,
-                                        batch_size=self.batch_size, trainable=True))
-        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=64, stride=[1, 1],
-                                       activation_type='relu', keep_size=True)
-        intermediate_output_size = layer_list[-1].get_output_size()
-        self.add_layer(layer_list[-1])
-        # conv1_3
-        layer_list.append(
-            layer_instances.Conv2dLayer(name=self.name + '/conv1_3', input_size=intermediate_output_size,
                                         batch_size=self.batch_size, trainable=True))
         layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=64, stride=[1, 1],
                                        activation_type='relu', keep_size=True)
@@ -391,14 +382,6 @@ class PSVRT_vgg19(processors.BaseFeedforwardProcessor):
         # conv2_2
         layer_list.append(
             layer_instances.Conv2dLayer(name=self.name + '/conv2_2', input_size=intermediate_output_size,
-                                        batch_size=self.batch_size, trainable=True))
-        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=128, stride=[1, 1],
-                                       activation_type='relu', keep_size=True)
-        intermediate_output_size = layer_list[-1].get_output_size()
-        self.add_layer(layer_list[-1])
-        # conv2_3
-        layer_list.append(
-            layer_instances.Conv2dLayer(name=self.name + '/conv2_3', input_size=intermediate_output_size,
                                         batch_size=self.batch_size, trainable=True))
         layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=128, stride=[1, 1],
                                        activation_type='relu', keep_size=True)
@@ -431,6 +414,14 @@ class PSVRT_vgg19(processors.BaseFeedforwardProcessor):
         # conv3_3
         layer_list.append(
             layer_instances.Conv2dLayer(name=self.name + '/conv3_3', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=256, stride=[1, 1],
+                                       activation_type='relu', keep_size=True)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv3_4
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv3_4', input_size=intermediate_output_size,
                                         batch_size=self.batch_size, trainable=True))
         layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=256, stride=[1, 1],
                                        activation_type='relu', keep_size=True)
@@ -554,6 +545,485 @@ class PSVRT_vgg19(processors.BaseFeedforwardProcessor):
         layer_list.append(layer_instances.FCLayer(name=self.name + '/FC3', input_size=intermediate_output_size,
                                           batch_size=self.batch_size))
         layer_list[-1].initialize_vars(output_channels=1000, activation_type='relu')
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # Classification
+        layer_list.append(layer_instances.FCLayer(name=self.name + '/classification', input_size=intermediate_output_size,
+                                          batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(output_channels=2, activation_type='relu')
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        self.output_size = layer_list[-1].get_output_size()
+
+    def run(self, X, dropout_keep_prob=1.):
+        intermediate = X
+        for current_layer in self.layer_list:
+            if isinstance(current_layer, layer_instances.DropoutLayer):
+                intermediate = current_layer.run(intermediate, dropout_keep_prob=dropout_keep_prob)
+            else:
+                intermediate = current_layer.run(intermediate)
+
+        return intermediate
+
+
+class PSVRT_vgg16(processors.BaseFeedforwardProcessor):
+    """
+    A multilayer simese convolutional net. Input channels are processed separately using shared conv weights.
+    """
+
+    def initialize_vars(self):
+        use_bias_in_conv = False
+
+        layer_list = []
+        intermediate_output_size = self.get_output_size()
+
+        # conv1_1
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv1_1', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=64, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+
+        # conv1_2
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv1_2', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=64, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # BN1
+        layer_list.append(
+            layer_instances.BatchNormLayer(name=self.name + '/bn1', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars()
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # pool1
+        layer_list.append(
+            layer_instances.Maxpool2dLayer(name=self.name + '/pool1', input_size=intermediate_output_size,
+                                  batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(rf_size=[2,2], stride=[2,2])
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+
+        # conv2_1
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv2_1', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=128, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv2_2
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv2_2', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=128, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # BN2
+        layer_list.append(
+            layer_instances.BatchNormLayer(name=self.name + '/bn2', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars()
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # pool2
+        layer_list.append(
+            layer_instances.Maxpool2dLayer(name=self.name + '/pool2', input_size=intermediate_output_size,
+                                  batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(rf_size=[2,2], stride=[2,2])
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+
+        # conv3_1
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv3_1', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=256, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv3_2
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv3_2', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=256, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv3_3
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv3_3', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=256, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # BN3
+        layer_list.append(
+            layer_instances.BatchNormLayer(name=self.name + '/bn3', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars()
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # pool3
+        layer_list.append(
+            layer_instances.Maxpool2dLayer(name=self.name + '/pool3', input_size=intermediate_output_size,
+                                  batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(rf_size=[2, 2], stride=[2,2])
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+
+        # conv4_1
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv4_1', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=512, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv4_2
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv4_2', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=512, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv4_3
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv4_3', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=512, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # BN4
+        layer_list.append(
+            layer_instances.BatchNormLayer(name=self.name + '/bn4', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars()
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # pool4
+        layer_list.append(
+            layer_instances.Maxpool2dLayer(name=self.name + '/pool4', input_size=intermediate_output_size,
+                                  batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(rf_size=[2,2], stride=[2,2])
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+
+        # conv5_1
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv5_1', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=512, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv5_2
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv5_2', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=512, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv5_3
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv5_3', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[3,3], output_channels=512, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # BN5
+        layer_list.append(
+            layer_instances.BatchNormLayer(name=self.name + '/bn5', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars()
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # pool5
+        layer_list.append(
+            layer_instances.Maxpool2dLayer(name=self.name + '/pool5', input_size=intermediate_output_size,
+                                  batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(rf_size=[2,2], stride=[2,2])
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+
+        # FC1
+        layer_list.append(layer_instances.FCLayer(name=self.name + '/FC1', input_size=intermediate_output_size,
+                                          batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(output_channels=4096, activation_type='relu')
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # Dropout1
+        layer_list.append(layer_instances.DropoutLayer(name=self.name + '/Dropout1',
+                                                       input_size=intermediate_output_size,
+                                                       batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(dropout_multiplier=1.)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # FC2
+        layer_list.append(layer_instances.FCLayer(name=self.name + '/FC2', input_size=intermediate_output_size,
+                                          batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(output_channels=4096, activation_type='relu')
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # Dropout2
+        layer_list.append(layer_instances.DropoutLayer(name=self.name + '/Dropout2',
+                                                       input_size=intermediate_output_size,
+                                                       batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(dropout_multiplier=1.)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # FC3
+        layer_list.append(layer_instances.FCLayer(name=self.name + '/FC3', input_size=intermediate_output_size,
+                                          batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(output_channels=1000, activation_type='relu')
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # Classification
+        layer_list.append(layer_instances.FCLayer(name=self.name + '/classification', input_size=intermediate_output_size,
+                                          batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(output_channels=2, activation_type='relu')
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        self.output_size = layer_list[-1].get_output_size()
+
+    def run(self, X, dropout_keep_prob=1.):
+        intermediate = X
+        for current_layer in self.layer_list:
+            if isinstance(current_layer, layer_instances.DropoutLayer):
+                intermediate = current_layer.run(intermediate, dropout_keep_prob=dropout_keep_prob)
+            else:
+                intermediate = current_layer.run(intermediate)
+
+        return intermediate
+
+class PSVRT_inceptionv4(processors.BaseFeedforwardProcessor):
+    """
+    A multilayer simese convolutional net. Input channels are processed separately using shared conv weights.
+    """
+
+    def initialize_vars(self):
+        print('inceptionv4: initialize_vars nothing to do')
+    #import inception_dependencies as sota
+
+    def run(self, X, dropout_keep_prob=1.):
+        #import ipdb
+        #ipdb.set_trace()
+        import inception_dependencies as sota
+        logits, end_points = \
+            sota.inception_v4(X, num_classes=2, is_training=True,
+                            dropout_keep_prob=dropout_keep_prob,
+                            reuse=None,
+                            scope='InceptionV4',
+                            create_aux_logits=True)
+        logits = tf.expand_dims(tf.expand_dims(logits, axis=1), axis=1)
+        return logits
+
+
+class PSVRT_deepcontrol(processors.BaseFeedforwardProcessor):
+    """
+    A multilayer simese convolutional net. Input channels are processed separately using shared conv weights.
+    """
+
+    def initialize_vars(self):
+        use_bias_in_conv = False
+
+        layer_list = []
+        intermediate_output_size = self.get_output_size()
+
+        # conv1_1
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv1_1', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[4,4], output_channels=8, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv1_2
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv1_2', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[2,2], output_channels=8, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # # BN1
+        # layer_list.append(
+        #     layer_instances.BatchNormLayer(name=self.name + '/bn1', input_size=intermediate_output_size,
+        #                                    batch_size=self.batch_size, trainable=True))
+        # layer_list[-1].initialize_vars()
+        # intermediate_output_size = layer_list[-1].get_output_size()
+        # self.add_layer(layer_list[-1])
+        # pool1
+        layer_list.append(
+            layer_instances.Maxpool2dLayer(name=self.name + '/pool1', input_size=intermediate_output_size,
+                                  batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(rf_size=[3,3], stride=[2,2])
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+
+
+        # conv2_1
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv2_1', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[2,2], output_channels=16, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv2_2
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv2_2', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[2,2], output_channels=16, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # # BN2
+        # layer_list.append(
+        #     layer_instances.BatchNormLayer(name=self.name + '/bn2', input_size=intermediate_output_size,
+        #                                 batch_size=self.batch_size, trainable=True))
+        # layer_list[-1].initialize_vars()
+        # intermediate_output_size = layer_list[-1].get_output_size()
+        # self.add_layer(layer_list[-1])
+        # pool2
+        layer_list.append(
+            layer_instances.Maxpool2dLayer(name=self.name + '/pool2', input_size=intermediate_output_size,
+                                  batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(rf_size=[3,3], stride=[2,2])
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+
+
+        # conv3_1
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv3_1', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[2,2], output_channels=32, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv3_2
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv3_2', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[2,2], output_channels=32, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # # BN3
+        # layer_list.append(
+        #     layer_instances.BatchNormLayer(name=self.name + '/bn3', input_size=intermediate_output_size,
+        #                                 batch_size=self.batch_size, trainable=True))
+        # layer_list[-1].initialize_vars()
+        # intermediate_output_size = layer_list[-1].get_output_size()
+        # self.add_layer(layer_list[-1])
+        # pool3
+        layer_list.append(
+            layer_instances.Maxpool2dLayer(name=self.name + '/pool3', input_size=intermediate_output_size,
+                                  batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(rf_size=[3,3], stride=[2,2])
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+
+
+        # conv4_1
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv4_1', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[2,2], output_channels=64, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv4_2
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv4_2', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[2,2], output_channels=64, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # # BN4
+        # layer_list.append(
+        #     layer_instances.BatchNormLayer(name=self.name + '/bn4', input_size=intermediate_output_size,
+        #                                 batch_size=self.batch_size, trainable=True))
+        # layer_list[-1].initialize_vars()
+        # intermediate_output_size = layer_list[-1].get_output_size()
+        # self.add_layer(layer_list[-1])
+        # pool4
+        layer_list.append(
+            layer_instances.Maxpool2dLayer(name=self.name + '/pool4', input_size=intermediate_output_size,
+                                  batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(rf_size=[3,3], stride=[2,2])
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+
+
+        # con5_1
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv5_1', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[2,2], output_channels=128, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # conv5_2
+        layer_list.append(
+            layer_instances.Conv2dLayer(name=self.name + '/conv5_2', input_size=intermediate_output_size,
+                                        batch_size=self.batch_size, trainable=True))
+        layer_list[-1].initialize_vars(rf_size=[2,2], output_channels=128, stride=[1, 1],
+                                       activation_type='relu', keep_size=True, use_bias=use_bias_in_conv)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # # BN5
+        # layer_list.append(
+        #     layer_instances.BatchNormLayer(name=self.name + '/bn5', input_size=intermediate_output_size,
+        #                                 batch_size=self.batch_size, trainable=True))
+        # layer_list[-1].initialize_vars()
+        # intermediate_output_size = layer_list[-1].get_output_size()
+        # self.add_layer(layer_list[-1])
+        # pool5
+        layer_list.append(
+            layer_instances.Maxpool2dLayer(name=self.name + '/pool5', input_size=intermediate_output_size,
+                                  batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(rf_size=[3,3], stride=[2,2])
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+
+
+        # FC1
+        layer_list.append(layer_instances.FCLayer(name=self.name + '/FC1', input_size=intermediate_output_size,
+                                          batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(output_channels=256, activation_type='relu')
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # Dropout1
+        layer_list.append(layer_instances.DropoutLayer(name=self.name + '/Dropout1',
+                                                       input_size=intermediate_output_size,
+                                                       batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(dropout_multiplier=1.)
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # FC2
+        layer_list.append(layer_instances.FCLayer(name=self.name + '/FC2', input_size=intermediate_output_size,
+                                          batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(output_channels=256, activation_type='relu')
+        intermediate_output_size = layer_list[-1].get_output_size()
+        self.add_layer(layer_list[-1])
+        # FC3
+        layer_list.append(layer_instances.FCLayer(name=self.name + '/FC3', input_size=intermediate_output_size,
+                                          batch_size=self.batch_size))
+        layer_list[-1].initialize_vars(output_channels=256, activation_type='relu')
         intermediate_output_size = layer_list[-1].get_output_size()
         self.add_layer(layer_list[-1])
         # Classification

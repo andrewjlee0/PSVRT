@@ -9,11 +9,11 @@ PARTITION='bibs-gpu' # batch # bibs-smp # bibs-gpu # gpu # small-batch
 QOS='bibs-tserre-condo' # pri-jk9
 
 for i_machine in $(seq 1 $n_machines); do
-sbatch -J "CNN-$script_name[$i_machine]" <<EOF
+sbatch -J "VGG-$script_name[$i_machine]" <<EOF
 #!/bin/bash
 #SBATCH -p $PARTITION
 #SBATCH -n 4
-#SBATCH -t 30:00:00
+#SBATCH -t 120:00:00
 #SBATCH --gres=gpu:$n_gpus
 #SBATCH --mem=16G
 #SBATCH --begin=now

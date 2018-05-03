@@ -9,7 +9,7 @@ from tensorflow.python.client import device_lib
 
 sys.path.append(os.path.abspath(os.path.join('..','..')))
 from helpers import train_helpers
-from experiments.vgg19 import params
+from experiments.sota import params
 
 warnings.filterwarnings('ignore')
 tf.logging.set_verbosity(tf.logging.ERROR)
@@ -19,6 +19,7 @@ def get_available_gpus():
     return [x.name for x in local_device_protos if x.device_type == 'GPU']
 
 # 20 secs per 100 iterations (1K imgs) with batch size 10 using gtx 980
+# => 100000
 if __name__ == '__main__':
 
     t = time.time()
@@ -31,14 +32,14 @@ if __name__ == '__main__':
     model_gpu_addresses = range(n_gpus)
     gradient_gpu_address = n_gpus
 
-    num_repeats = 10
-    box_extent_list = [[30, 30],[60,60],[90, 90],[120, 120],[150, 150],[180, 180]]
+    num_repeats = 5 #10
+    box_extent_list = [[180,180]] #[[30, 30],[60,60],[90, 90],[120, 120],[150, 150],[180, 180]]
     num_items_list = [2] # [3,4,5,6]
     item_size_list = [[4, 4]]  # [[3, 3],[5, 5],[6, 6],[7, 7]]
 
-    params['train_data_init_args']['problem_type'] = 'SD' # 'SR'
+    params['train_data_init_args']['problem_type'] = 'SR' # 'SR'
 
-    results_root = '/home/jk/PSVRT_test_result/'
+    results_root = '/home/jk/PSVRT_results_sota_sr' #'/gpfs/data/tserre/data/PSVRT_results_vgg/'
     summary_dir = os.path.join(results_root, params['train_data_init_args']['problem_type'])
 
     kth_job = 0

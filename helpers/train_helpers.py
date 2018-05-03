@@ -143,15 +143,16 @@ def fftrain(**kwargs):
     accuracy = acc(model_output, target_output_placeholder, name='accuracy')
     average = tf.reduce_mean(model_output_argmax)
     variance = tf.reduce_mean(tf.square(model_output_argmax-average))
-    if clip_gradient:
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    with tf.control_dependencies(update_ops):
         optimizer = tf.train.AdamOptimizer(learning_rate)
         gradients = optimizer.compute_gradients(loss)
-        for i, (grad, var) in enumerate(gradients):
-            if grad is not None:
-                gradients[i] = (tf.clip_by_norm(grad, 1e+3), var)
+        if clip_gradient:
+            for i, (grad, var) in enumerate(gradients):
+                if grad is not None:
+                    gradients[i] = (tf.clip_by_norm(grad, 1e+3), var)
         apply_gradients = optimizer.apply_gradients(gradients)
-    else:
-        apply_gradients = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+
     utility.llprint("Done!\n")
 
     ############### SET UP TENSORBOARD AND CHRONICLER ###############

@@ -6,7 +6,6 @@ from operator import mul
 from operator import sub
 from operator import add
 from operator import truediv
-import ipdb
 
 # NOTE: input_size and output_size exclude batch dimension but the actual input and output must have batch dimension as its first dim.
 # NOTE: relu is automatically applied to conv or fc layers
@@ -85,7 +84,7 @@ class Conv2dLayer(layers.BaseLayer):
     2D convolutional layer. Sets layer attributes, passes data through layer.
     """
 
-    def initialize_vars(self, rf_size, output_channels, stride, activation_type='relu', keep_size=False):
+    def initialize_vars(self, rf_size, output_channels, stride, activation_type='relu', keep_size=False, use_bias=True):
         """
         Inputs :
 
@@ -99,6 +98,7 @@ class Conv2dLayer(layers.BaseLayer):
         self.stride = stride
         self.activation_type = activation_type
         self.keep_size = keep_size
+        self.use_bias = use_bias
 
         if not isinstance(self.rf_size, list):
             raise TypeError("Conv2dLayer: rf_size should be a list of ints.")
@@ -137,9 +137,10 @@ class Conv2dLayer(layers.BaseLayer):
                                        shape=self.rf_size + [self.input_size[2]] + [output_channels], dtype=tf.float32,
                                        initializer=tf.contrib.layers.xavier_initializer_conv2d(),
                                        trainable=self.trainable)
-        self.biases = tf.get_variable(name=self.name + '/_b', shape=[1, 1, output_channels], dtype=tf.float32,
-                                      initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-                                      trainable=self.trainable)
+        if self.use_bias:
+            self.biases = tf.get_variable(name=self.name + '/_b', shape=[1, 1, output_channels], dtype=tf.float32,
+                                          initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+                                          trainable=self.trainable)
 
     def run(self, X):
         """
@@ -152,13 +153,13 @@ class Conv2dLayer(layers.BaseLayer):
         super(Conv2dLayer, self).run(X)
 
         if not self.keep_size:
-            output = tf.add(
-                tf.nn.conv2d(X, filter=self.weights, strides=[1] + self.stride + [1], padding="VALID", data_format="NHWC",
-                             name=self.name + '_CONV'), self.biases, name=self.name + '_BIAS')
+            output = tf.nn.conv2d(X, filter=self.weights, strides=[1] + self.stride + [1], padding="VALID", data_format="NHWC",
+                             name=self.name + '_CONV')
         else:
-            output = tf.add(
-                tf.nn.conv2d(X, filter=self.weights, strides=[1] + self.stride + [1], padding="SAME", data_format="NHWC",
-                             name=self.name + '_CONV'), self.biases, name=self.name + '_BIAS')
+            output = tf.nn.conv2d(X, filter=self.weights, strides=[1] + self.stride + [1], padding="SAME", data_format="NHWC",
+                             name=self.name + '_CONV')
+        if self.use_bias:
+            output = tf.add(output, self.biases, name=self.name + '_BIAS')
 
         if self.activation_type is 'relu':
             output = tf.nn.relu(output, name=self.name + '_out')
@@ -236,6 +237,23 @@ class Maxpool2dLayer(layers.BaseLayer):
             if not output.shape.as_list()[1:] == self.output_size:
                 raise TypeError(
                     "Maxpool2dLayer: output (Y) has different shape (excluding batch) than input_size. Could be a bug in implementation.")
+        return output
+
+class BatchNormLayer(layers.BaseLayer):
+    """
+    A layer that takes a max pool over spatially discrete blocks
+    """
+
+    def initialize_vars(self):
+        """
+        """
+        self.output_size = self.input_size
+
+    def run(self, X):
+        """
+        """
+        super(BatchNormLayer, self).run(X)
+        output = tf.layers.batch_normalization(X)
         return output
 
 

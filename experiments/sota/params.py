@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join('..','..')))
 def get_params():
     params = {}
     params['raw_input_size'] = [180, 180, 1]
-    params['batch_size'] = 10
+    params['batch_size'] = 50 #6
     params['num_categories'] = 2
     params['num_min_train_imgs'] = 5000000 # 5M shorter run
     params['num_max_train_imgs'] = 5000000
@@ -14,11 +14,11 @@ def get_params():
 
     params['learning_rate'] = 1e-4
     params['clip_gradient'] = True
-    params['dropout_keep_prob'] = 0.5
+    params['dropout_keep_prob'] = 0.8
 
     from instances import processor_instances
 
-    params['model_obj'] = processor_instances.PSVRT_vgg19
+    params['model_obj'] = processor_instances.PSVRT_inceptionv4
     params['model_name'] = 'model'
     params['model_init_args'] = {}
     from instances import psvrt
