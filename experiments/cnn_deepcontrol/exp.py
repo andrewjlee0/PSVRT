@@ -9,7 +9,7 @@ from tensorflow.python.client import device_lib
 
 sys.path.append(os.path.abspath(os.path.join('..','..')))
 from helpers import train_helpers
-from experiments.vgg import params
+from experiments.cnn_deepcontrol import params
 
 warnings.filterwarnings('ignore')
 tf.logging.set_verbosity(tf.logging.ERROR)

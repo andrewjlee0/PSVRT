@@ -18,7 +18,7 @@ def get_params():
 
     from instances import processor_instances
 
-    params['model_obj'] = processor_instances.PSVRT_inceptionv4
+    params['model_obj'] = processor_instances.PSVRT_inception_resnet_v2
     params['model_name'] = 'model'
     params['model_init_args'] = {}
     from instances import psvrt

@@ -807,28 +807,6 @@ class PSVRT_vgg16(processors.BaseFeedforwardProcessor):
 
         return intermediate
 
-class PSVRT_inceptionv4(processors.BaseFeedforwardProcessor):
-    """
-    A multilayer simese convolutional net. Input channels are processed separately using shared conv weights.
-    """
-
-    def initialize_vars(self):
-        print('inceptionv4: initialize_vars nothing to do')
-    #import inception_dependencies as sota
-
-    def run(self, X, dropout_keep_prob=1.):
-        #import ipdb
-        #ipdb.set_trace()
-        import inception_dependencies as sota
-        logits, end_points = \
-            sota.inception_v4(X, num_classes=2, is_training=True,
-                            dropout_keep_prob=dropout_keep_prob,
-                            reuse=None,
-                            scope='InceptionV4',
-                            create_aux_logits=True)
-        logits = tf.expand_dims(tf.expand_dims(logits, axis=1), axis=1)
-        return logits
-
 
 class PSVRT_deepcontrol(processors.BaseFeedforwardProcessor):
     """
@@ -1043,3 +1021,70 @@ class PSVRT_deepcontrol(processors.BaseFeedforwardProcessor):
                 intermediate = current_layer.run(intermediate)
 
         return intermediate
+
+
+class PSVRT_inception_v4(processors.BaseFeedforwardProcessor):
+    """
+    A multilayer simese convolutional net. Input channels are processed separately using shared conv weights.
+    """
+
+    def initialize_vars(self):
+        print('inception_v4: initialize_vars nothing to do')
+    #import inception_dependencies as sota
+
+    def run(self, X, dropout_keep_prob=1.):
+        #import ipdb
+        #ipdb.set_trace()
+        import inception_v4_dependencies as sota
+        logits, end_points = \
+            sota.inception_v4(X, num_classes=2, is_training=True,
+                            dropout_keep_prob=dropout_keep_prob,
+                            reuse=None,
+                            scope='InceptionV4',
+                            create_aux_logits=True)
+        logits = tf.expand_dims(tf.expand_dims(logits, axis=1), axis=1)
+        return logits
+
+class PSVRT_inception_resnet_v2(processors.BaseFeedforwardProcessor):
+    """
+    A multilayer simese convolutional net. Input channels are processed separately using shared conv weights.
+    """
+
+    def initialize_vars(self):
+        print('inception_resnet_v2: initialize_vars nothing to do')
+        #import inception_dependencies as sota
+
+    def run(self, X, dropout_keep_prob=1.):
+        #import ipdb
+        #ipdb.set_trace()
+        import inception_v4_dependencies as sota
+        logits, end_points = \
+            sota.inception_v4(X, num_classes=2, is_training=True,
+                              dropout_keep_prob=dropout_keep_prob,
+                              reuse=None,
+                              scope='Inception-resnet-V2',
+                              create_aux_logits=True)
+        logits = tf.expand_dims(tf.expand_dims(logits, axis=1), axis=1)
+        return logits
+
+class PSVRT_resnet50_v2(processors.BaseFeedforwardProcessor):
+    """
+    A multilayer simese convolutional net. Input channels are processed separately using shared conv weights.
+    """
+
+    def initialize_vars(self):
+        print('inception_resnet_v2: initialize_vars nothing to do')
+        # import inception_dependencies as sota
+
+    def run(self, X, dropout_keep_prob=1.):
+        # import ipdb
+        # ipdb.set_trace()
+        import resnet_v2_dependencies as sota
+        logits, end_points = \
+            sota.inception_v4(X, num_classes=2, is_training=True,
+                              dropout_keep_prob=dropout_keep_prob,
+                              reuse=None,
+                              scope='Inception-resnet-V2',
+                              create_aux_logits=True)
+        logits = tf.expand_dims(tf.expand_dims(logits, axis=1), axis=1)
+        return logits
