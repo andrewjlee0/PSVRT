@@ -13,8 +13,8 @@ def find_files(files, dirs=[], contains=[]):
             files += [os.path.join(d, f) for f in onlyfiles if part in f]
         onlydirs = [os.path.join(d, dd) for dd in os.listdir(d) if os.path.isdir(os.path.join(d, dd))]
         if onlydirs:
-            files += find_files([], onlydirs, contains)
-
+            recursive_files,_ = find_files([], onlydirs, contains)
+            files += recursive_files
     return files, len(files)
 
 def plot_ata(curves_name_list, curves_color_list, condition_type, conditions_path_list, conditions_name_list,
@@ -48,13 +48,15 @@ def plot_ata(curves_name_list, curves_color_list, condition_type, conditions_pat
                 # jitter = np.random.randint(low=-1,high=2,size=learning_curve.shape).astype(float)
                 # learning_curve += jitter
                 # np.save(fn,learning_curve)
-                if learning_curve.shape[0] < default_num_lc_samples: #for 10 million
-                    remainder = default_num_lc_samples - learning_curve.shape[0]
-                    trailing_average = 0.975
-                    filler = np.array([trailing_average]*remainder)
-                    learning_curve = np.concatenate([learning_curve,filler])
-                    ## THIS PART FOR CUTTING/FILLING
-                ata = np.mean(learning_curve[:400])
+                # if learning_curve.shape[0] < default_num_lc_samples: #for 10 million
+                #     remainder = default_num_lc_samples - learning_curve.shape[0]
+                #     trailing_average = 0.975
+                #     filler = np.array([trailing_average]*remainder)
+                #     learning_curve = np.concatenate([learning_curve,filler])
+                #     ## THIS PART FOR CUTTING/FILLING
+                # ata = np.mean(learning_curve[:400])
+                ata = np.mean(learning_curve)
+                print(ata)
                 ata_list.append(ata)
                 raw_paired_list.append([j, ata])
                 if ata < 0.6:
@@ -62,9 +64,10 @@ def plot_ata(curves_name_list, curves_color_list, condition_type, conditions_pat
                 else:
                     ata_list_learned.append(ata)
             if type == 'segregated':
-                mean_list.append(np.mean(ata_list_learned))
-                u_list.append(np.sort(ata_list_learned)[-1])
-                d_list.append(np.sort(ata_list_learned)[0])
+                if len(ata_list_learned) > 0:
+                    mean_list.append(np.mean(ata_list_learned))
+                    u_list.append(np.sort(ata_list_learned)[-1])
+                    d_list.append(np.sort(ata_list_learned)[0])
                 n_unlearned_list.append(len(ata_list_unlearned))
             else:
                 ata_list_sorted = np.sort(ata_list)
@@ -91,14 +94,14 @@ def plot_ata(curves_name_list, curves_color_list, condition_type, conditions_pat
         elif type == 'segregated':
             fig = plt.figure(figsize=(7.5, 6))
             ax1 = fig.add_subplot(111)
-            ax1.plot(np.array(x_list), np.array(mean_list), c=curves_color_list[i],
+            ax1.plot(np.array(x_list[:len(mean_list)]), np.array(mean_list), c=curves_color_list[i],
                      marker='o', linestyle='--', linewidth=5.0, markersize=14, alpha=0.8, label=curves_name_list[i])
-            ax1.fill_between(np.array(x_list), np.array(d_list), np.array(u_list), color=curves_color_list[i],
+            ax1.fill_between(np.array(x_list[:len(d_list)]), np.array(d_list), np.array(u_list), color=curves_color_list[i],
                              alpha=0.2, edgecolor=curves_color_list[i], linewidth=0.5)
             ax2 = ax1.twinx()
             ax2.bar(np.array(x_list), np.array(n_unlearned_list), align='center', color='k', width=0.6, alpha=0.3)
     if type == 'segregated':
-        ax1.set_xlabel(condition_type, fontsize=16)
+        ax1.set_xlabel(condition_type , fontsize=16)
         plt.xticks(range(len(conditions_path_list)), conditions_name_list)
         ax1.set_xlim([-0.3, len(conditions_path_list) - 1 + 0.3])
         ax1.set_ylim([0.5, 1])
@@ -144,8 +147,8 @@ if __name__ == '__main__':
 
     load_root = '/Users/junkyungkim/Desktop/PSVRTSD_summary'
     save_root = os.path.join(load_root, 'figsave')
-    curves_name_list = ['SD-Siamese'] # ['SR-Siamese'] #['SD-Siamese'] #['SR-CNN'] # ['SD-CNN (Control)']
-    curves_color_list =['tomato'] #['g'] #['tomato'] #['b'] # ['blueviolet']
+    curves_name_list = ['SD-CNN (Deep)'] # ['SR-Siamese'] #['SD-Siamese'] #['SR-CNN'] # ['SD-CNN (Wide)']
+    curves_color_list =['brown'] #['g'] #['tomato'] #['b'] # ['blueviolet']
     plot_type = 'segregated'
 
     default_num_lc_samples = 400

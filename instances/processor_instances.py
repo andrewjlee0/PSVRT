@@ -1081,10 +1081,8 @@ class PSVRT_resnet50_v2(processors.BaseFeedforwardProcessor):
         # ipdb.set_trace()
         import resnet_v2_dependencies as sota
         logits, end_points = \
-            sota.inception_v4(X, num_classes=2, is_training=True,
-                              dropout_keep_prob=dropout_keep_prob,
+            sota.resnet_v2_50(X, num_classes=2, is_training=True,
                               reuse=None,
-                              scope='Inception-resnet-V2',
-                              create_aux_logits=True)
+                              scope='Inception-resnet-V2')
         logits = tf.expand_dims(tf.expand_dims(logits, axis=1), axis=1)
         return logits
